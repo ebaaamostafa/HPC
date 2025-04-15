@@ -4,18 +4,16 @@
 #include <string.h>
 #include <ctype.h>
 
-void encrypt(char* str,int length, int shift){
-    for (int i = 0; i < length; ++i){
-        // printf("%c ",str[i]);
-        // fflush(stdout);
-        if (!isalpha(str[i]))
+// Encrypts the given string using Caesar Cipher with the specified shift
+void encrypt(char* str, int length, int shift) {
+    for (int i = 0; i < length; ++i) {
+        if (!isalpha(str[i])) // Skip non-alphabetic characters
             continue;
-        if (islower(str[i])){
+        if (islower(str[i])) { // Handle lowercase letters
             str[i] += shift;
             if (str[i] > 'z')
                 str[i] -= 26;
-        }
-        else {
+        } else { // Handle uppercase letters
             str[i] += shift;
             if (str[i] > 'Z')
                 str[i] -= 26;
@@ -23,16 +21,16 @@ void encrypt(char* str,int length, int shift){
     }
 }
 
-void decrypt(char* str,int length, int shift){
-    for (int i = 0; i < length; ++i){
-        if (!isalpha(str[i]))
+// Decrypts the given string using Caesar Cipher with the specified shift
+void decrypt(char* str, int length, int shift) {
+    for (int i = 0; i < length; ++i) {
+        if (!isalpha(str[i])) // Skip non-alphabetic characters
             continue;
-        if (islower(str[i])){
+        if (islower(str[i])) { // Handle lowercase letters
             str[i] -= shift;
             if (str[i] < 'a')
                 str[i] += 26;
-        }
-        else {
+        } else { // Handle uppercase letters
             str[i] -= shift;
             if (str[i] < 'A')
                 str[i] += 26;
@@ -40,14 +38,14 @@ void decrypt(char* str,int length, int shift){
     }
 }
 
-int getInputOption(){
+// Prompts the user to choose between console input or file input
+int getInputOption() {
     int option = 0;
     printf("Enter 1 for console input, 2 for file input: ");
     fflush(stdout);
     scanf("%d", &option);
-    // fflush(stdin);
-    while(option != 1 && option != 2){
-        printf ("Invalid option. Enter 1 for console input, 2 for file input: ");
+    while (option != 1 && option != 2) { // Validate input
+        printf("Invalid option. Enter 1 for console input, 2 for file input: ");
         fflush(stdout);
         scanf("%d", &option);
         fflush(stdin);
@@ -55,88 +53,92 @@ int getInputOption(){
     return option;
 }
 
-int getEncrytionOption(){
+// Prompts the user to choose between encryption or decryption
+int getEncrytionOption() {
     int option = 0;
     printf("Enter 1 to encrypt, 2 to decrypt: ");
     fflush(stdout);
     scanf("%d", &option);
-    // fflush(stdin);
-    while(option != 1 && option != 2){
-        printf ("Invalid option. Enter 1 to encrypt, 2 to decrypt: ");
+    while (option != 1 && option != 2) { // Validate input
+        printf("Invalid option. Enter 1 to encrypt, 2 to decrypt: ");
         fflush(stdout);
         scanf("%d", &option);
-        // fflush(stdin);
     }
     return option;
 }
 
-int main(int argc, char** argv){
-    MPI_Init(&argc, &argv);
+int main(int argc, char** argv) {
+    MPI_Init(&argc, &argv); // Initialize MPI environment
     int processRank, numOfProcessors;
-    MPI_Comm_rank(MPI_COMM_WORLD, &processRank);
-    MPI_Comm_size(MPI_COMM_WORLD, &numOfProcessors);
+    MPI_Comm_rank(MPI_COMM_WORLD, &processRank); // Get the rank of the current process
+    MPI_Comm_size(MPI_COMM_WORLD, &numOfProcessors); // Get the total number of processes
     MPI_Status status;
     char* str;
-    int inputOption,encryptionOption,strLength,shift = 3;
-    if (processRank == 0){
-        inputOption = getInputOption();
+    int inputOption, encryptionOption, strLength, shift = 3;
+
+    if (processRank == 0) { // Root process
+        inputOption = getInputOption(); // Get input method
         strLength = 0;
-        if (inputOption == 1){
-            encryptionOption = getEncrytionOption();
+
+        if (inputOption == 1) { // Console input
+            encryptionOption = getEncrytionOption(); // Get encryption/decryption option
             printf("Enter the size of the string: ");
             fflush(stdout);
             scanf("%d", &strLength);
-            str = (char*)malloc((strLength + 1) * sizeof(char));
+            str = (char*)malloc((strLength + 1) * sizeof(char)); // Allocate memory for the string
             printf("Enter the string: ");
             fflush(stdout);
             scanf("%s", str);
-            // fflush(stdin);
-        }
-        else {
+        } else { // File input
             FILE* input = fopen("input.txt", "r");
-            if (input == NULL){
+            if (input == NULL) {
                 printf("Error opening file.\n");
                 return 1;
             }
-            fscanf(input, "%d", &encryptionOption);
-            fscanf(input, "%d", &strLength);
-            str = (char*)malloc((strLength + 1) * sizeof(char));
-            fscanf(input, "%s", str);
+            fscanf(input, "%d", &encryptionOption); // Read encryption/decryption option
+            fscanf(input, "%d", &strLength); // Read string length
+            str = (char*)malloc((strLength + 1) * sizeof(char)); // Allocate memory for the string
+            fscanf(input, "%s", str); // Read the string
             fclose(input);
         }
 
-        int portionSize = strLength/numOfProcessors;
+        int portionSize = strLength / numOfProcessors; // Divide the string into equal portions
 
-        fflush(stdout);
-        for (int i = 1; i < numOfProcessors; ++i){
-            MPI_Send(&encryptionOption,1,MPI_INT,i,0,MPI_COMM_WORLD);
-            MPI_Send(&portionSize,1,MPI_INT,i,0,MPI_COMM_WORLD);
-            MPI_Send(str + i * portionSize, portionSize,MPI_CHAR,i,0,MPI_COMM_WORLD);
+        // Send portions of the string and options to other processes
+        for (int i = 1; i < numOfProcessors; ++i) {
+            MPI_Send(&encryptionOption, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+            MPI_Send(&portionSize, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+            MPI_Send(str + i * portionSize, portionSize, MPI_CHAR, i, 0, MPI_COMM_WORLD);
         }
 
+        // Process the first portion in the root process
         if (encryptionOption == 1)
             encrypt(str, portionSize, shift);
         else
             decrypt(str, portionSize, shift);
 
-        for (int i = 1; i < numOfProcessors; ++i) 
+        // Receive processed portions from other processes
+        for (int i = 1; i < numOfProcessors; ++i)
             MPI_Recv(str + portionSize * i, portionSize, MPI_CHAR, i, 0, MPI_COMM_WORLD, &status);
-        
-        printf(encryptionOption == 1 ? "Encrypted string: %s\n" : "Decrypted string: %s\n", str);
-    }
-    else{
-        MPI_Recv(&encryptionOption,1,MPI_INT,0,0,MPI_COMM_WORLD,&status);
-        MPI_Recv(&strLength,1,MPI_INT,0,0,MPI_COMM_WORLD,&status);
-        str = (char*) malloc(strLength * sizeof(char));
-        MPI_Recv(str,strLength,MPI_CHAR,0,0,MPI_COMM_WORLD,&status);
 
+        // Print the final result
+        printf(encryptionOption == 1 ? "Encrypted string: %s\n" : "Decrypted string: %s\n", str);
+    } else { // Worker processes
+        MPI_Recv(&encryptionOption, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status); // Receive encryption/decryption option
+        MPI_Recv(&strLength, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status); // Receive portion size
+        str = (char*)malloc(strLength * sizeof(char)); // Allocate memory for the portion
+        MPI_Recv(str, strLength, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status); // Receive the portion
+
+        // Process the received portion
         if (encryptionOption == 1)
-            encrypt(str,strLength,shift);
+            encrypt(str, strLength, shift);
         else
-            decrypt(str,strLength,shift);
-        
-        MPI_Send(str,strLength,MPI_CHAR,0,0,MPI_COMM_WORLD);
+            decrypt(str, strLength, shift);
+
+        // Send the processed portion back to the root process
+        MPI_Send(str, strLength, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
     }
-    free(str);
-    MPI_Finalize();
+
+    free(str); // Free allocated memory
+    MPI_Finalize(); // Finalize MPI environment
 }
