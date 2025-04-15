@@ -25,10 +25,12 @@ int main(int argc, char** argv) {
 
     if(rank == 0) { // Master
         printf("Enter array size: ");
+        fflush(stdout);
         scanf("%d", &n);
 
         arr = (int*)malloc(n * sizeof(int));
         printf("Enter array elements: ");
+        fflush(stdout);
         for(int i = 0; i < n; ++i) {
             scanf("%d", &arr[i]);
         }
@@ -56,6 +58,7 @@ int main(int argc, char** argv) {
             }
         }
         printf("Max element: %d\nMax element index: %d\n", finalMax, finalMaxIdx);
+        fflush(stdout);
         free(arr); // free allocated memory for whole array
 
     } else { // Slaves
