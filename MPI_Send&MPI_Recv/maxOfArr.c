@@ -37,25 +37,32 @@ int main(int argc, char** argv) {
 
         // distribute work among slaves
         pSize = n / size; // size of each slave's array
+        int rem=n%size;
+        int prev=pSize+(0<rem ? 1 : 0);
         for (int i = 1; i < size; ++i) {
-            MPI_Send(&pSize, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-            MPI_Send(arr + i * pSize, pSize, MPI_INT, i, 0, MPI_COMM_WORLD);
+            int currentPSize=pSize+(i<rem ? 1 : 0);
+            MPI_Send(&currentPSize, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+            MPI_Send(arr + prev, currentPSize, MPI_INT, i, 0, MPI_COMM_WORLD);
+            prev+=currentPSize;
         }
+        prev=pSize+(0<rem ? 1 : 0);
 
         // master's task
-        getMax(arr, pSize, &pMax, &pMaxIdx);
+        getMax(arr, prev, &pMax, &pMaxIdx);
 
         // collect results
         int finalMax = pMax, finalMaxIdx = pMaxIdx;
         for(int i = 1; i < size; ++i) {
+            int currentPSize=pSize+(i<rem ? 1 : 0);
             int tmpMax, tmpMaxIdx;
             MPI_Recv(&tmpMax, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(&tmpMaxIdx, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
             if(tmpMax > finalMax) {
                 finalMax = tmpMax;
-                finalMaxIdx = tmpMaxIdx + i * pSize;
+                finalMaxIdx = tmpMaxIdx + prev;
             }
+            prev+=currentPSize;
         }
         printf("Max element: %d\nMax element index: %d\n", finalMax, finalMaxIdx);
         fflush(stdout);
