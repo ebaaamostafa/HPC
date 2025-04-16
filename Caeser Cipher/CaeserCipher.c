@@ -103,24 +103,31 @@ int main(int argc, char** argv) {
         }
 
         int portionSize = strLength / numOfProcessors; // Divide the string into equal portions
-
+        int rem=strLength%numOfProcessors;
+        int prev=portionSize+(0<rem? 1 :0);
         // Send portions of the string and options to other processes
         for (int i = 1; i < numOfProcessors; ++i) {
+            int currentPortionSize=portionSize+(i<rem? 1 :0);
             MPI_Send(&encryptionOption, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-            MPI_Send(&portionSize, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-            MPI_Send(str + i * portionSize, portionSize, MPI_CHAR, i, 0, MPI_COMM_WORLD);
+            MPI_Send(&currentPortionSize, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+            MPI_Send(str + prev, currentPortionSize, MPI_CHAR, i, 0, MPI_COMM_WORLD);
+            prev+=currentPortionSize;
         }
+
+        prev=portionSize+(0<rem? 1 :0);
 
         // Process the first portion in the root process
         if (encryptionOption == 1)
-            encrypt(str, portionSize, shift);
+            encrypt(str, prev, shift);
         else
-            decrypt(str, portionSize, shift);
+            decrypt(str, prev, shift);
 
         // Receive processed portions from other processes
-        for (int i = 1; i < numOfProcessors; ++i)
-            MPI_Recv(str + portionSize * i, portionSize, MPI_CHAR, i, 0, MPI_COMM_WORLD, &status);
-
+        for (int i = 1; i < numOfProcessors; ++i){
+            int currentPortionSize=portionSize+(i<rem? 1 :0);
+            MPI_Recv(str + prev,currentPortionSize, MPI_CHAR, i, 0, MPI_COMM_WORLD, &status);
+            prev+=currentPortionSize;
+        }
         // Print the final result
         printf(encryptionOption == 1 ? "Encrypted string: %s\n" : "Decrypted string: %s\n", str);
     } else { // Worker processes
