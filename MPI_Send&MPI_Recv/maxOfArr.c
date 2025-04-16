@@ -49,6 +49,7 @@ int main(int argc, char** argv) {
 
         // master's task
         getMax(arr, prev, &pMax, &pMaxIdx);
+        printf("Hello from Slave#%d Max element: %d Max element index: %d\n",rank, pMax, pMaxIdx);
 
         // collect results
         int finalMax = pMax, finalMaxIdx = pMaxIdx;
@@ -64,7 +65,7 @@ int main(int argc, char** argv) {
             }
             prev+=currentPSize;
         }
-        printf("Max element: %d\nMax element index: %d\n", finalMax, finalMaxIdx);
+        printf("Final answer Max element: %d\nMax element index: %d\n", finalMax, finalMaxIdx);
         fflush(stdout);
         free(arr); // free allocated memory for whole array
 
@@ -74,6 +75,8 @@ int main(int argc, char** argv) {
         MPI_Recv(pArr, pSize, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); //recieve values of partition in the allocated memory
 
         getMax(pArr, pSize, &pMax, &pMaxIdx); // slave's task
+
+        printf("Hello from Slave#%d Max element: %d Max element index: %d\n",rank, pMax, pMaxIdx);
 
         MPI_Send(&pMax, 1, MPI_INT, 0, 0, MPI_COMM_WORLD); // send max value
         MPI_Send(&pMaxIdx, 1, MPI_INT, 0, 0, MPI_COMM_WORLD); // send max index
