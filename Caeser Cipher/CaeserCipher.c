@@ -81,26 +81,27 @@ int main(int argc, char** argv) {
         strLength = 0;
 
         if (inputOption == 1) { // Console input
-            encryptionOption = getEncrytionOption(); // Get encryption/decryption option
             printf("Enter the size of the string: ");
             fflush(stdout);
             scanf("%d", &strLength);
+            getchar(); // Clear the newline character left in the buffer
             str = (char*)malloc((strLength + 1) * sizeof(char)); // Allocate memory for the string
             printf("Enter the string: ");
             fflush(stdout);
-            scanf("%s", str);
+            fgets(str, strLength + 1, stdin); // Read the string, including spaces
         } else { // File input
             FILE* input = fopen("input.txt", "r");
             if (input == NULL) {
                 printf("Error opening file.\n");
                 return 1;
             }
-            fscanf(input, "%d", &encryptionOption); // Read encryption/decryption option
             fscanf(input, "%d", &strLength); // Read string length
+            fgetc(input); // Clear the newline character left in the file buffer
             str = (char*)malloc((strLength + 1) * sizeof(char)); // Allocate memory for the string
-            fscanf(input, "%s", str); // Read the string
+            fgets(str, strLength + 1, input); // Read the string, including spaces
             fclose(input);
         }
+        encryptionOption = getEncrytionOption(); // Get encryption/decryption option
 
         int portionSize = strLength / numOfProcessors; // Divide the string into equal portions
         int rem=strLength%numOfProcessors;
